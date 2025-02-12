@@ -1,0 +1,19 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="4dp">
+
+
+    <ImageView
+        android:id="@+id/marker_icon"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/pngtree_drone_flying_on_transparent_background_png_image_6209864"
+        android:contentDescription="Marker Icon" />
+
+
+
+</LinearLayout>

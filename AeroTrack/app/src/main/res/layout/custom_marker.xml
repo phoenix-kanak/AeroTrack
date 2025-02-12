@@ -1,0 +1,29 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="4dp">
+
+
+    <ImageView
+        android:id="@+id/marker_icon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@drawable/pngtree_drone_flying_on_transparent_background_png_image_6209864"
+        android:contentDescription="Marker Icon" />
+
+    <TextView
+        android:id="@+id/marker_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Drone"
+        android:textSize="42sp"
+        android:textColor="@color/black"
+        android:background="@color/white"
+        android:padding="4dp"
+        android:layout_marginTop="4dp"/>
+
+
+</LinearLayout>

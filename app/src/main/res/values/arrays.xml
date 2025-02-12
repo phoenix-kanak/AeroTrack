@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="zones">
+        <item>0(Yard)</item>
+        <item>I(Metre)</item>
+        <item>IIa(Metre)</item>
+        <item>IIb(Metre)</item>
+        <item>IIIa(Metre)</item>
+        <item>IVa(Metre)</item>
+    </string-array>
+</resources>
