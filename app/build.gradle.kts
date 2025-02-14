@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id ("kotlin-parcelize")
+    id("com.google.gms.google-services")
+
 }
 
 android {
@@ -67,5 +69,12 @@ dependencies {
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation ("org.locationtech.proj4j:proj4j:1.2.2")
     implementation ("org.locationtech.proj4j:proj4j-epsg:1.2.2")
-
+    //Firebase
+    implementation (platform("com.google.firebase:firebase-bom:33.9.0"))
+    implementation ("com.google.firebase:firebase-core:21.1.1")
+    implementation ("com.google.firebase:firebase-auth:23.2.0")
+    implementation ("com.google.firebase:firebase-storage-ktx:21.0.1")
+    implementation ("com.google.firebase:firebase-database-ktx:19.2.1")
+    implementation ("com.google.firebase:firebase-messaging:24.1.0")
+    implementation ("com.google.firebase:firebase-firestore-ktx")
 }

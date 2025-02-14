@@ -8,6 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.Observer
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.project.aerotrack.databinding.ActivityLoginBinding
 import com.project.aerotrack.models.UserLoginRequest
 import com.project.aerotrack.repository.AuthRepository
@@ -17,12 +19,13 @@ import com.project.aerotrack.viewmodels.AuthViewModel
 class LoginActivity : AppCompatActivity() {
     private lateinit var authViewModel: AuthViewModel
     private lateinit var binding: ActivityLoginBinding
-    private lateinit var sharedPreferences:SharedPrefManager
+    private lateinit var sharedPreferences: SharedPrefManager
+    private val db = FirebaseFirestore.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        sharedPreferences= SharedPrefManager(this)
+        sharedPreferences = SharedPrefManager(this)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
         val apiInterface = AuthRepository.create()
@@ -34,12 +37,11 @@ class LoginActivity : AppCompatActivity() {
 
             val loginInfo = UserLoginRequest(password, userID)
             authViewModel.login(loginInfo)
-            bindObserver()
+            bindObserver(userID)
         }
-
     }
 
-    fun bindObserver() {
+    fun bindObserver(userID: String) {
         authViewModel.loginLiveData.observe(this, Observer {
             binding.progressBar.isVisible = false
             when (it) {
@@ -48,7 +50,7 @@ class LoginActivity : AppCompatActivity() {
                         Toast.makeText(this, "${it.data?.message} ", Toast.LENGTH_SHORT).show()
                     } else {
                         sharedPreferences.saveToken("${it.data?.token}")
-                        Log.d("userlogin","${it.data?.token}")
+                        saveUserIdToFirestore(userID)
                         val intent = Intent(this, OpenMapActivity::class.java)
                         startActivity(intent)
                         finish()
@@ -70,4 +72,16 @@ class LoginActivity : AppCompatActivity() {
         })
     }
 
+    private fun saveUserIdToFirestore(userID: String) {
+        val userMap = hashMapOf(
+            "userID" to userID
+        )
+        sharedPreferences.saveUserName(userID)
+        Log.d("messageSent",userID)
+        db.collection("all_users").document(userID).set(userMap).addOnSuccessListener {
+            Log.d("Firestore", "User ID stored successfully")
+        }.addOnFailureListener { e ->
+            Log.e("Firestore", "Error storing user ID", e)
+        }
+    }
 }

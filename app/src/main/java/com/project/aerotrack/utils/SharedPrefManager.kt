@@ -1,6 +1,7 @@
 package com.project.aerotrack
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 
 class SharedPrefManager(context: Context) {
 
@@ -11,6 +12,7 @@ class SharedPrefManager(context: Context) {
     companion object {
         private const val PREFS_NAME = "my_prefs"
         private const val KEY_USERNAME = "username"
+        private const val FIREBASE_TOKEN="firebase_token"
     }
 
     // Save data
@@ -22,6 +24,16 @@ class SharedPrefManager(context: Context) {
     // Retrieve data
     fun getToken(): String? {
         return sharedPreferences.getString(KEY_USERNAME, null)
+    }
+
+    fun saveUserName(token: String){
+        Log.d("messageSent",token)
+        editor.putString(FIREBASE_TOKEN, token)
+        editor.apply()
+    }
+
+    fun getUserName():String?{
+        return sharedPreferences.getString(FIREBASE_TOKEN,null)
     }
 
     // Clear specific data
