@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -11,6 +12,7 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -29,6 +31,9 @@ import com.google.firebase.database.DatabaseReference
 import com.project.aerotrack.databinding.ActivityMapScreenBinding
 import com.project.aerotrack.models.Drones
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.TimeZone
 
@@ -54,12 +59,13 @@ class MapScreen : AppCompatActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         addDummyMarkers()
         mMap.setOnMarkerClickListener { marker ->
             val drone = allDrones?.find {
-                it.landingPointLat == marker.position.latitude && it.landingPointLong == marker.position.longitude
+                it.takeOffPointLat == marker.position.latitude && it.takeOffPointLong == marker.position.longitude
             }
             if (drone != null) {
                 showDronePath(drone)
@@ -102,6 +108,7 @@ class MapScreen : AppCompatActivity(), OnMapReadyCallback {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun addDummyMarkers() {
         mMap.clear()
         mMap.setInfoWindowAdapter(CustomInfoWindowAdapter(this))
@@ -111,7 +118,7 @@ class MapScreen : AppCompatActivity(), OnMapReadyCallback {
                 val droneLocation = LatLng(drone.landingPointLat, drone.landingPointLong)
                 val landingPoint = LatLng(drone.takeOffPointLat, drone.takeOffPointLong)
                 val marker = mMap.addMarker(
-                    MarkerOptions().position(droneLocation).title("Drone ID: ${drone.droneId}")
+                    MarkerOptions().position(landingPoint).title("Drone ID: ${drone.droneId}")
                         .snippet("Landing Point: (${drone.landingPointLat}, ${drone.landingPointLong})")
                         .icon(createCustomMarker("Drone ${index + 1}"))
                 )
@@ -120,15 +127,13 @@ class MapScreen : AppCompatActivity(), OnMapReadyCallback {
                         convertTo12HourFormat(drone.landingTime)
                     }\n "
 
-                Log.d("MapScreen", "Added marker: Drone ${index + 1} at $droneLocation")
+                Log.d("MapScreen", "Added marker: Drone ${index + 1} at $landingPoint")
             }
 
-            val latLng = allDrones?.get(0)?.let {
-                it.landingPointLat.let { it1 ->
-                    it.landingPointLong.let { it2 ->
-                        LatLng(
-                            it1, it2
-                        )
+            val latLng = allDrones?.lastOrNull()?.let { drone ->
+                drone.takeOffPointLat?.let { lat ->
+                    drone.takeOffPointLong?.let { lng ->
+                        LatLng(lat, lng)
                     }
                 }
             }
@@ -176,19 +181,18 @@ class MapScreen : AppCompatActivity(), OnMapReadyCallback {
         return BitmapDescriptorFactory.fromBitmap(bitmap)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun convertTo12HourFormat(isoTime: String): String {
-        // Parse the ISO 8601 time string (assuming it's in UTC)
-        val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-        isoFormat.timeZone = TimeZone.getTimeZone("UTC")
-        val date = isoFormat.parse(isoTime)
+        val instant = Instant.parse(isoTime)  // Parse ISO timestamp
 
-        // Format the date into a 12-hour format with AM/PM indicator
-        val outputFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
-        // Optionally, set the output format timezone to local timezone if desired:
-        outputFormat.timeZone = TimeZone.getDefault()
+        // Convert to local time zone (UTC in this case)
+        val formatter = DateTimeFormatter.ofPattern("HH:mm")
+            .withZone(ZoneId.of("UTC"))
 
-        return outputFormat.format(date)
+        val formattedTime = formatter.format(instant)
+        return formattedTime
     }
+
 }
 
 class CustomInfoWindowAdapter(context: Context) : GoogleMap.InfoWindowAdapter {
