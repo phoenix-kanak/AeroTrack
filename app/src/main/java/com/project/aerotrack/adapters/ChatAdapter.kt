@@ -9,6 +9,9 @@ import com.project.aerotrack.R
 import com.project.aerotrack.SharedPrefManager
 import com.project.aerotrack.databinding.ItemChatBinding
 import com.project.aerotrack.models.Chat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class ChatAdapter(
     private var messages: List<Chat>,
@@ -36,10 +39,9 @@ class ChatAdapter(
         fun bind(chat: Chat, currentUser: String) {
             binding.userMsg.text = chat.message
             binding.userName.text = chat.name
-            binding.msgTime.text = chat.time.toString()
+            binding.msgTime.text = convertTimestampTo12HourFormat(chat.time)
 
             val layoutParams = binding.messageLayout.layoutParams as? ConstraintLayout.LayoutParams
-
             if (chat.name == currentUser) {
                 // If the message is from the current user, align to the right
                 layoutParams?.horizontalBias = 1.0f // Align to the right
@@ -51,6 +53,11 @@ class ChatAdapter(
             }
 
             binding.messageLayout.layoutParams = layoutParams
+        }
+        fun convertTimestampTo12HourFormat(timestamp: Long): String {
+            val date = Date(timestamp)
+            val format = SimpleDateFormat("hh:mm a", Locale.getDefault())
+            return format.format(date)
         }
     }
 }

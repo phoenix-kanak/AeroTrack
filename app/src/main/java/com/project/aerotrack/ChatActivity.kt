@@ -36,6 +36,7 @@ class ChatActivity : AppCompatActivity() {
         chatAdapter = ChatAdapter(messageList , this)
         chatRv = binding.ChatRecycleView
         chatRv.layoutManager = LinearLayoutManager(this)
+        chatRv.scrollToPosition(messageList.size - 1)
         binding.ChatRecycleView.adapter = chatAdapter
         fetchMessages(messageList ,chatAdapter )
         binding.sendButton.setOnClickListener {
@@ -79,7 +80,8 @@ class ChatActivity : AppCompatActivity() {
                         messageList.add(message)
                     }
                 }
-                adapter.notifyDataSetChanged() // Refresh RecyclerView
+                adapter.notifyDataSetChanged()
+                chatRv.scrollToPosition(messageList.size - 1)
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -87,6 +89,5 @@ class ChatActivity : AppCompatActivity() {
             }
         })
     }
-
 
 }
