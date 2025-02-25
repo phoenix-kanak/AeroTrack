@@ -177,17 +177,20 @@ class MapScreen : AppCompatActivity(), OnMapReadyCallback {
     }
 
     fun convertTo12HourFormat(isoTime: String): String {
-        // Parse the ISO 8601 time string (assuming it's in UTC)
-        val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-        isoFormat.timeZone = TimeZone.getTimeZone("UTC")
-        val date = isoFormat.parse(isoTime)
+        return try {
+            // Parse the ISO 8601 time string (UTC time)
+            val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+            isoFormat.timeZone = TimeZone.getTimeZone("UTC") // Ensure it's in UTC
+            val date = isoFormat.parse(isoTime)
 
-        // Format the date into a 12-hour format with AM/PM indicator
-        val outputFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
-        // Optionally, set the output format timezone to local timezone if desired:
-        outputFormat.timeZone = TimeZone.getDefault()
+            // Convert to 12-hour format in local time zone
+            val outputFormat = SimpleDateFormat("hh:mm a", Locale.US)
+            outputFormat.timeZone = TimeZone.getDefault() // Convert to local time zone
 
-        return outputFormat.format(date)
+            outputFormat.format(date ?: return "Invalid Date") // Return formatted time
+        } catch (e: Exception) {
+            "Invalid Date"
+        }
     }
 }
 
