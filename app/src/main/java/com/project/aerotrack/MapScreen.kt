@@ -27,9 +27,17 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.getValue
 import com.project.aerotrack.databinding.ActivityMapScreenBinding
+import com.project.aerotrack.models.DroneId
+import com.project.aerotrack.models.DroneInfo
 import com.project.aerotrack.models.Drones
+import com.project.aerotrack.models.RegisterDrone
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -38,107 +46,128 @@ import java.util.Locale
 import java.util.TimeZone
 
 class MapScreen : AppCompatActivity(), OnMapReadyCallback {
-
+    private val droneMarkers = mutableMapOf<String, String>()
     private lateinit var mMap: GoogleMap
-    private lateinit var database: DatabaseReference
     private lateinit var binding: ActivityMapScreenBinding
     private var allDrones: ArrayList<Drones>? = null  // Store drones safely
     private var currentPolyline: Polyline? = null
     private var takeOffCircle: Circle? = null
     private var landingCircle: Circle? = null
-
+    private lateinit var droneInfo: DroneInfo
+    private lateinit var droneId: RegisterDrone
+    private lateinit var databaseReference: DatabaseReference
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         binding = ActivityMapScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        databaseReference = FirebaseDatabase.getInstance().reference
         val rawList = intent.getSerializableExtra("drones") as? ArrayList<*>
         val itemList = rawList?.filterIsInstance<Drones>()?.let { ArrayList(it) }
         allDrones = itemList
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+
+        databaseReference.child("drones").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val drone = snapshot.getValue(RegisterDrone::class.java)
+                Log.d("droneInfo", "$drone")
+                if (drone != null) {
+                    droneId = drone
+                }
+
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("error", error.toString())
+            }
+        })
+
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
-        addDummyMarkers()
-        mMap.setOnMarkerClickListener { marker ->
-            val drone = allDrones?.find {
-                it.takeOffPointLat == marker.position.latitude && it.takeOffPointLong == marker.position.longitude
+        val listener =
+            databaseReference.child("gps_data").orderByKey().limitToLast(1)
+        listener.addValueEventListener(object : ValueEventListener {
+            @RequiresApi(Build.VERSION_CODES.O)
+            override fun onDataChange(snapshot: DataSnapshot) {
+                snapshot.children.forEach {
+                    val drone = it.getValue(DroneInfo::class.java)
+                    Log.d("droneInfo1", "$drone")
+                    if (drone != null) {
+                        droneInfo = drone
+                        Log.d("DroneInfo", "0")
+                        addDummyMarkers()
+                    }
+                }
             }
-            if (drone != null) {
-                showDronePath(drone)
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("message", error.toString())
             }
-            false
-        }
+        })
+//        mMap.setOnMarkerClickListener { marker ->
+
+
+//            false
+//        }
     }
 
-    private fun showDronePath(drone: Drones) {
+    private fun showDronePath(drone: RegisterDrone) {
         // Clear the previous polyline if any
-        currentPolyline?.remove()
-        landingCircle?.remove()
-        takeOffCircle?.remove()
+//        currentPolyline?.remove()
+//        landingCircle?.remove()
+//        takeOffCircle?.remove()
 
         val takeoffLocation = LatLng(drone.takeOffPointLat, drone.takeOffPointLong)
         val landingLocation = LatLng(drone.landingPointLat, drone.landingPointLong)
 
         // Draw a new polyline from takeoff to landing
         currentPolyline = mMap.addPolyline(
-            PolylineOptions()
-                .add(takeoffLocation, landingLocation)
-                .width(5f)
-                .color(Color.RED)
+            PolylineOptions().add(takeoffLocation, landingLocation).width(80f).color(Color.RED)
         )
 
         // Add black dots at both ends
         takeOffCircle = mMap.addCircle(
-            CircleOptions()
-                .center(takeoffLocation)
-                .radius(10.0)
-                .strokeColor(Color.BLACK)
+            CircleOptions().center(LatLng(28.4402, 77.0712)).radius(100.0).strokeColor(Color.BLACK)
                 .fillColor(Color.BLACK)
         )
         landingCircle = mMap.addCircle(
-            CircleOptions()
-                .center(landingLocation)
-                .radius(10.0)
-                .strokeColor(Color.BLACK)
+            CircleOptions().center(landingLocation).radius(100.0).strokeColor(Color.BLACK)
                 .fillColor(Color.BLACK)
         )
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun addDummyMarkers() {
+        Log.d("DroneInfo", "1")
         mMap.clear()
         mMap.setInfoWindowAdapter(CustomInfoWindowAdapter(this))
-        allDrones?.let { droneList ->
-            for ((index, drone) in droneList.withIndex()) {
 
-                val droneLocation = LatLng(drone.landingPointLat, drone.landingPointLong)
-                val landingPoint = LatLng(drone.takeOffPointLat, drone.takeOffPointLong)
-                val marker = mMap.addMarker(
-                    MarkerOptions().position(landingPoint).title("Drone ID: ${drone.droneId}")
-                        .snippet("Landing Point: (${drone.landingPointLat}, ${drone.landingPointLong})")
-                        .icon(createCustomMarker("Drone ${index + 1}"))
-                )
-                marker?.tag =
-                    "Takeoff Time: ${convertTo12HourFormat(drone.takeOffTime)}\n Landing Time: ${
-                        convertTo12HourFormat(drone.landingTime)
-                    }\n "
-
-                Log.d("MapScreen", "Added marker: Drone ${index + 1} at $landingPoint")
-            }
-
-            val latLng = allDrones?.lastOrNull()?.let { drone ->
-                drone.takeOffPointLat?.let { lat ->
-                    drone.takeOffPointLong?.let { lng ->
-                        LatLng(lat, lng)
-                    }
-                }
-            }
-            if (latLng != null) mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+//                val droneLocation = LatLng(dr.landingPointLat, drone.landingPointLong)
+        val landingPoint = LatLng(droneId.takeOffPointLat, droneId.takeOffPointLong)
+        val currentPos = LatLng(droneInfo.latitude, droneInfo.longitude)
+        val marker = mMap.addMarker(
+            MarkerOptions().position(currentPos).title("Drone ID: ${droneId.droneId}")
+                .snippet("Landing Point: (${droneId.landingPointLat}, ${droneId.landingPointLong})")
+                .icon(createCustomMarker("Drone"))
+        )
+        val tagString = buildString {
+            append("Takeoff Time: ${droneId.takeOffTime}\n")
+            append("Landing Time: ${droneId.landingTime}\n")
+            append("Altitude: ${droneInfo.altitude}\n")
+            append("Latitude: ${droneInfo.latitude}\n")
+            append("Longitude: ${droneInfo.longitude}\n")
+            append("Speed: ${droneInfo.speed}\n")
         }
+
+        marker?.tag = tagString
+        showDronePath(droneId)
+        Log.d("DroneInfo", currentPos.toString())
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentPos, 15f))
+
     }
 
     private fun createCustomMarker(text: String): BitmapDescriptor {
@@ -186,8 +215,7 @@ class MapScreen : AppCompatActivity(), OnMapReadyCallback {
         val instant = Instant.parse(isoTime)  // Parse ISO timestamp
 
         // Convert to local time zone (UTC in this case)
-        val formatter = DateTimeFormatter.ofPattern("HH:mm")
-            .withZone(ZoneId.of("UTC"))
+        val formatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.of("UTC"))
 
         val formattedTime = formatter.format(instant)
         return formattedTime

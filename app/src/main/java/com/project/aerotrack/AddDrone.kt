@@ -16,6 +16,8 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Observer
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import com.project.aerotrack.databinding.ActivityAddDroneBinding
 import com.project.aerotrack.models.RegisterDrone
 import com.project.aerotrack.repository.DroneRepository
@@ -27,15 +29,18 @@ class AddDrone : AppCompatActivity() {
     private lateinit var binding: ActivityAddDroneBinding
     private lateinit var droneViewModel: DroneViewModel
     private lateinit var sharedPref: SharedPrefManager
+    private lateinit var firebaseDb:DatabaseReference
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         sharedPref = SharedPrefManager(this)
+
         binding = ActivityAddDroneBinding.inflate(layoutInflater)
         setContentView(binding.root)
         val apiInterface = DroneRepository.create()
         val authRepo = DroneRepository(apiInterface)
         droneViewModel = DroneViewModel(authRepo)
+        firebaseDb = FirebaseDatabase.getInstance().reference
 
         binding.takeoffTime.setOnClickListener {
             showMaterialTimePicker(binding.takeoffTime)
@@ -95,8 +100,9 @@ class AddDrone : AppCompatActivity() {
 
                 val token = sharedPref.getToken()
                 Log.d("signup","$droneInfo")
-                droneViewModel.registerDrone("Bearer $token", droneInfo)
-                bindObserver()
+                saveDroneData(droneInfo)
+//                droneViewModel.registerDrone("Bearer $token", droneInfo)
+//                bindObserver()
             }
         }
     }
@@ -177,4 +183,19 @@ class AddDrone : AppCompatActivity() {
             view.setText("$hour:$formattedMinute")
         }
     }
+    private fun saveDroneData(droneInfo: RegisterDrone) {
+        val droneRef = firebaseDb.child("drones")
+
+        droneRef.setValue(droneInfo)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Drone data saved successfully!", Toast.LENGTH_SHORT).show()
+                val intent = Intent(this, OpenMapActivity::class.java)
+                startActivity(intent)
+                finish()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to save data: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
 }
